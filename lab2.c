@@ -159,25 +159,21 @@ void* Animal(void* atr){
 
 // Создание процесса
 void CreateThread(int row, int column, TypeAnimal type){
-
-    pthread_t* animal_id = (pthread_t*)(malloc(sizeof(pthread_t)));
     
     for(int i = 0; i < kMapSizeX*kMapSizeY; i++){
-        if (db_animals[i].type == NONE){
+        if (memory->db_animals[i].type == NONE){
 
-            db_animals[i].type = type;              
-            db_animals[i].coord.x = row;
-            db_animals[i].coord.y = column;
-            db_animals[i].life_time = kLifeTime;
-            db_animals[i].startvation_time = kStarvationTime;
+            memory->db_animals[i].type = type;              
+            memory->db_animals[i].coord.x = row;
+            memory->db_animals[i].coord.y = column;
+            memory->db_animals[i].life_time = kLifeTime;
+            memory->db_animals[i].startvation_time = kStarvationTime;
 
-            map[row][column] = i;
+            memory->map[row][column] = i;
             
             int* index = (int*)malloc(sizeof(int));
             *index = i;
 
-            pthread_create(animal_id, NULL, &Animal, index);
-            break;
         }
     }
 }
@@ -240,7 +236,8 @@ int main(int argc, char *argv[]){
     pthread_mutex_unlock(&memory->mutex);
 
     // pthread_join(log, NULL);
-    sleep(10000);
+    //******** попробовать void ************
+    sleep(10000);                   
     // Освобождение памяти
     pthread_mutex_destroy(&memory->mutex);
 
