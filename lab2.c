@@ -33,6 +33,8 @@ void Animal(int atr){
 
     printf("%u-%d\n", getpid(),index);
 
+    printf("%x\n", memory);
+
     while (1){
         // Смотрим продолжительность жизни 
         if (memory->db_animals[index].life_time == 0 || memory->db_animals[index].startvation_time == 0){
@@ -162,7 +164,7 @@ void Animal(int atr){
         if (memory->db_animals[index].life_time == 0){
             exit(EXIT_SUCCESS);
         }
-        usleep(50000);
+        sleep(2);
     }
 }
 
@@ -237,7 +239,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    printf("%x", memory);
+    printf("%x\n", memory);
 
     // Обнуление карты 
     for (int i = 0; i < kMapSizeX; i++){
@@ -266,13 +268,16 @@ int main(int argc, char *argv[]){
     pthread_mutex_unlock(&memory->mutex);
 
     // Ожидание завершения дочерних процессов
-    waitpid(-1, 0, 0);   
+    // waitpid(-1, 0, 0);   
+    sleep(30);
 
     // Освобождение памяти
     pthread_mutex_destroy(&memory->mutex);
 
     // Удаление разделяемой памяти
     shm_unlink(SHARED_MEMORY_OBJECT_NAME);
+
+    printf("Все четко!\n");
 
     return 0;
 }
