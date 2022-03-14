@@ -237,6 +237,7 @@ int main(int argc, char *argv[]){
 
     // pthread_join(log, NULL);
     //******** попробовать void ************
+    // удалить разделяемую память
     sleep(10000);                   
     // Освобождение памяти
     pthread_mutex_destroy(&memory->mutex);
