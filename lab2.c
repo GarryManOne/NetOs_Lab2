@@ -1,13 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <time.h>
 #include <malloc.h>
-#include "lab2.h"
-#include <sys/types.h>
-#include <sys/mman.h>
 #include <fcntl.h>
 #include <pthread.h>
+
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/wait.h>
+
+#include "lab2.h"
+
+
+// // Функция, вызываемая при завершении процесса
+// void ExitMessage(void)
+// {
+//     fprint("Процесс %d завершил работу.\n", getpid());
+// }
 
 // Генерация псевдослучайных чисел на определнном промежутке
 int GetRandRangeInt(int min, int max){
@@ -15,22 +26,22 @@ int GetRandRangeInt(int min, int max){
 }
 
 // // Функция работающая в отдельном потоке
-void* Animal(void* atr){
+void Animal(int atr){
 
-    int* index = (int*) atr;
+    int index = atr;
     int n = 0;
 
-    printf("%u-%d\n", pthread_self(),*index);
+    printf("%u-%d\n", getpid(),index);
 
     while (1){
         // Смотрим продолжительность жизни 
-        if (db_animals[*index].life_time == 0 || db_animals[*index].startvation_time == 0){
-            map[db_animals[*index].coord.x][db_animals[*index].coord.y] = 17;
-            pthread_exit(NULL);
+        if (memory->db_animals[index].life_time == 0 || memory->db_animals[index].startvation_time == 0){
+            memory->map[memory->db_animals[index].coord.x][memory->db_animals[index].coord.y] = 17;
+            exit(EXIT_SUCCESS);
         }
 
-        int x = db_animals[*index].coord.x;
-        int y = db_animals[*index].coord.y;
+        int x = memory->db_animals[index].coord.x;
+        int y = memory->db_animals[index].coord.y;
 
         // Случайное передвижение
         switch (GetRandRangeInt(0, 4)){
@@ -62,103 +73,101 @@ void* Animal(void* atr){
                 break;
         }
 
-        pthread_mutex_lock(&mutex);
+        pthread_mutex_lock(&memory->mutex);
 
         // Смотрим продолжительность жизни 
-        if (db_animals[*index].life_time == 0){
-            pthread_mutex_unlock(&mutex);
-            pthread_exit(NULL);
+        if (memory->db_animals[index].life_time == 0){
+            pthread_mutex_unlock(&memory->mutex);
+            exit(EXIT_SUCCESS);
         }
 
-        printf("%u шаг=%d \n", pthread_self(), n++);
+        printf("%u шаг=%d \n", getpid(), n++);
 
         // Проверка какое животное находится в этой ячейке
-        if(map[x][y] != 17){
+        if(memory->map[x][y] != 17){
             
             // Спаривание :)
-            if (db_animals[*index].type == db_animals[map[x][y]].type){
+            if (memory->db_animals[index].type == memory->db_animals[memory->map[x][y]].type){
+                
                 // Смотрим продолжительность жизни 
-                if (db_animals[*index].life_time == 0){
-                    pthread_mutex_unlock(&mutex);
-                    pthread_exit(NULL);
+                if (memory->db_animals[index].life_time == 0){
+                    pthread_mutex_unlock(&memory->mutex);
+                    exit(EXIT_SUCCESS);
                 }
-                CreateThread(GetRandRangeInt(0, kMapSizeX), GetRandRangeInt(0, kMapSizeY), db_animals[*index].type);
-                pthread_mutex_unlock(&mutex);
+                CreateProcess(GetRandRangeInt(0, kMapSizeX), GetRandRangeInt(0, kMapSizeY), memory->db_animals[index].type);
+                pthread_mutex_unlock(&memory->mutex);
             }
             // Ест
-            else if ((db_animals[*index].type + 1 ) % 3 == db_animals[map[x][y]].type){
+            else if ((memory->db_animals[index].type + 1 ) % 3 == memory->db_animals[memory->map[x][y]].type){
+
                 // Смотрим продолжительность жизни 
-                if (db_animals[*index].life_time == 0){
-                    pthread_mutex_unlock(&mutex);
-                    pthread_exit(NULL);
+                if (memory->db_animals[index].life_time == 0){
+                    pthread_mutex_unlock(&memory->mutex);
+                    exit(EXIT_SUCCESS);
                 }
 
-                db_animals[map[x][y]].life_time = 0;
+                memory->db_animals[memory->map[x][y]].life_time = 0;
 
-                map[db_animals[*index].coord.x][db_animals[*index].coord.y] = 17;
+                memory->map[memory->db_animals[index].coord.x][memory->db_animals[index].coord.y] = 17;
 
-
-                db_animals[*index].coord.x = x;
-                db_animals[*index].coord.y = y;
-                db_animals[*index].startvation_time = kStarvationTime;
+                memory->db_animals[index].coord.x = x;
+                memory->db_animals[index].coord.y = y;
+                memory->db_animals[index].startvation_time = kStarvationTime;
                 
-                map[x][y] = *index;
+                memory->map[x][y] = index;
 
                 PrintMap();
 
-                pthread_mutex_unlock(&mutex);
+                pthread_mutex_unlock(&memory->mutex);
             }
             // Его едят
             else{
                 // Смотрим продолжительность жизни 
-                if (db_animals[*index].life_time == 0){
-                    pthread_mutex_unlock(&mutex);
-                    pthread_exit(NULL);
+                if (memory->db_animals[index].life_time == 0){
+                    pthread_mutex_unlock(&memory->mutex);
+                    exit(EXIT_SUCCESS);
                 }
 
-                map[db_animals[*index].coord.x][db_animals[*index].coord.y] = 17;
+                memory->map[memory->db_animals[index].coord.x][memory->db_animals[index].coord.y] = 17;
 
                 PrintMap();
 
-                pthread_mutex_unlock(&mutex);
-                pthread_exit(NULL);
+                pthread_mutex_unlock(&memory->mutex);
+                exit(EXIT_SUCCESS);
             }
         }
         else
         {
             // Смотрим продолжительность жизни 
-            if (db_animals[*index].life_time == 0){
-                pthread_mutex_unlock(&mutex);
-                pthread_exit(NULL);
+            if (memory->db_animals[index].life_time == 0){
+                pthread_mutex_unlock(&memory->mutex);
+                exit(EXIT_SUCCESS);
             }
 
             // Обнуление прошлой ячейки
-            map[db_animals[*index].coord.x][db_animals[*index].coord.y] = 17;
+            memory->map[memory->db_animals[index].coord.x][memory->db_animals[index].coord.y] = 17;
             
             // Переход
-            db_animals[*index].coord.x = x;
-            db_animals[*index].coord.y = y;
-            db_animals[*index].life_time -= 1;
-            db_animals[*index].startvation_time -= 1;   
-            map[x][y] = *index;
+            memory->db_animals[index].coord.x = x;
+            memory->db_animals[index].coord.y = y;
+            memory->db_animals[index].life_time -= 1;
+            memory->db_animals[index].startvation_time -= 1;   
+            memory->map[x][y] = index;
 
             PrintMap();
-            pthread_mutex_unlock(&mutex);
+            pthread_mutex_unlock(&memory->mutex);
         }
 
         // Смотрим продолжительность жизни 
-        if (db_animals[*index].life_time == 0){
-            pthread_exit(NULL);
+        if (memory->db_animals[index].life_time == 0){
+            exit(EXIT_SUCCESS);
         }
         usleep(50000);
-
     }
-    
-    return NULL;
 }
 
 // Создание процесса
-void CreateThread(int row, int column, TypeAnimal type){
+void CreateProcess(int row, int column, TypeAnimal type){
     
     for(int i = 0; i < kMapSizeX*kMapSizeY; i++){
         if (memory->db_animals[i].type == NONE){
@@ -170,32 +179,30 @@ void CreateThread(int row, int column, TypeAnimal type){
             memory->db_animals[i].startvation_time = kStarvationTime;
 
             memory->map[row][column] = i;
-            
-            int* index = (int*)malloc(sizeof(int));
-            *index = i;
-
+            if (fork() != 0) return Animal(i);
+            break;
         }
     }
 }
 
-// // Вывод карты в консоль
-// void PrintMap(void){
-//             for (int i = 0; i < kMapSizeX; i++){
-//                 for (int j = 0; j < kMapSizeY; j++){
-//                     if (map[i][j] == 17){
-//                         // fprintf(log_file, "[*]");
-//                         printf("[*]");
-//                     }
-//                     else{
-//                         // fprintf(log_file, "[%d]", db_animals[map[i][j]].type);
-//                         printf("[%d]", db_animals[map[i][j]].type);
-//                     }                }
-//                 // fprintf(log_file, "\n");
-//                 printf("\n");
-//             }
-//             // fprintf(log_file, "\n");
-//             printf("\n");
-// }
+// Вывод карты в консоль
+void PrintMap(void){
+            for (int i = 0; i < kMapSizeX; i++){
+                for (int j = 0; j < kMapSizeY; j++){
+                    if (memory->map[i][j] == 17){
+                        // fprintf(log_file, "[*]");
+                        printf("[*]");
+                    }
+                    else{
+                        // fprintf(log_file, "[%d]", db_animals[map[i][j]].type);
+                        printf("[%d]", memory->db_animals[memory->map[i][j]].type);
+                    }                }
+                // fprintf(log_file, "\n");
+                printf("\n");
+            }
+            // fprintf(log_file, "\n");
+            printf("\n");
+}
 
 // // Открытие файла для записи
 // FILE* OpenFile(char* fileName){
@@ -210,37 +217,62 @@ void CreateThread(int row, int column, TypeAnimal type){
 
 // Главная функция
 int main(int argc, char *argv[]){
+
     srand(time(NULL));
     setbuf(stdout, 0);
 
-    shr_mem l;
-    
-    int shm = shm_open(SHARED_MEMORY_OBJECT_NAME, O_RDWR, 0777);
+    int shm = 0;
 
-    memory = (shr_mem*) mmap(0, sizeof(shr_mem), PROT_WRITE|PROT_READ, MAP_SHARED, shm, 0);
+    if( (shm = shm_open (SHARED_MEMORY_OBJECT_NAME, O_CREAT|O_RDWR, 0777)) == -1){
+        perror("shm_open");
+        return -1;
+    }
 
-    // Обнуляем всю разделяемую память
-    memset((void*)shm, 0, sizeof(shm)); 
+    ftruncate(shm, sizeof(shr_mem));
+
+    // Создаем отображение
+    memory = mmap(NULL, sizeof(shr_mem), PROT_WRITE|PROT_READ, MAP_SHARED, shm, 0);
+    if (memory == (shr_mem*)-1){
+        perror("mmap");
+        return 1;
+    }
+
+    printf("%x", memory);
+
+    // Обнуление карты 
+    for (int i = 0; i < kMapSizeX; i++){
+        for (int j = 0; j < kMapSizeY; j++){
+            memory->map[i][j] = 17;
+        }
+    }
+
+    for (int i = 0; i < kMapSizeX*kMapSizeY; i++){
+        memory->db_animals[i].type = NONE;
+    }
 
     //  Создание и инициализация мьютексов
     pthread_mutex_init(&memory->mutex, NULL);    
 
+    // Блокировка
     pthread_mutex_lock(&memory->mutex);
 
-    // Создание потоков
-    CreateThread(0, 0, ANIMAL_1);
-    CreateThread(1, 3, ANIMAL_2);
-    CreateThread(3, 2, ANIMAL_3);
-    CreateThread(4, 0, ANIMAL_2);
+    // Создание процессов
+    CreateProcess(0, 0, ANIMAL_1);
+    CreateProcess(1, 3, ANIMAL_2);
+    CreateProcess(3, 2, ANIMAL_3);
+    CreateProcess(4, 0, ANIMAL_2);
 
+    // Разблокировка
     pthread_mutex_unlock(&memory->mutex);
 
-    // pthread_join(log, NULL);
-    //******** попробовать void ************
-    // удалить разделяемую память
-    sleep(10000);                   
+    // Ожидание завершения дочерних процессов
+    waitpid(-1, 0, 0);   
+
     // Освобождение памяти
     pthread_mutex_destroy(&memory->mutex);
+
+    // Удаление разделяемой памяти
+    shm_unlink(SHARED_MEMORY_OBJECT_NAME);
 
     return 0;
 }
