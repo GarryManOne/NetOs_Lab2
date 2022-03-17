@@ -44,6 +44,7 @@ typedef struct {
 // Shared Memory
 typedef struct 
 {
+    int file_map;
     pthread_mutex_t mutex;              // Мьютекс
     int map[4][4];                      // Карта
     AnimalAttributes db_animals[16];    // База данных о животных
@@ -51,19 +52,9 @@ typedef struct
 } shr_mem;
 // ************************************************************************
 
-// *********************** Глобальные перменные ***************************
-shr_mem* memory = NULL;
-// ************************************************************************
-
 // *************************** Прототипы функций **************************
-// Создание потоков
-void CreateProcess(int row, int column, TypeAnimal type);
-
 // Генерация псевдослучайных чисел на определнном промежутке
 int GetRandRangeInt(int min, int max);
-
-// Функция работающая в отдельном потоке
-void Animal(int atr);
 
 // Вывод карты в консоль
 void PrintMap(void);
