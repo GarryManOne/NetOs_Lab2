@@ -55,11 +55,14 @@ int main(int argc, char * argv[])
     if(argc != 4)
     {
         printf("Не достаточно аргументов!");
+        return 0;
     }
 
     int x = atoi(argv[1]);              //  Расположение по X
     int y = atoi(argv[2]);              //  Расположение по Y
     int type_animal = atoi(argv[3]);    //  Тип животного
+
+    // shm_unlink(SHARED_MEMORY_OBJECT_NAME);
 
     int shm = 0;                        //  Дескриптора объекта разделяемой памяти
 
@@ -79,8 +82,12 @@ int main(int argc, char * argv[])
     // Закрываем объект разделяемой памяти
     close(shm);
 
+    pthread_mutexattr_t mattr;
+    pthread_mutexattr_init(&mattr); 
+    pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+
     //  Создание и инициализация мьютексов
-    pthread_mutex_init(&memory->mutex, NULL);    
+    pthread_mutex_init(&memory->mutex, &mattr);    
 
     // Блокировка
     pthread_mutex_lock(&memory->mutex);
@@ -91,13 +98,15 @@ int main(int argc, char * argv[])
     if (memory->map[x][y] == 17){
         for(int i = 0; i < kMapSizeX*kMapSizeY; i++){
             if (memory->db_animals[i].type == NONE){
-                memory->db_animals[i].type = type_animal;                   // Тип животного              
+                memory->db_animals[i].type = (TypeAnimal)type_animal;                   // Тип животного              
                 memory->db_animals[i].coord.x = x;                          // Координаты по X
                 memory->db_animals[i].coord.y = y;                          // Координаты по Y
                 memory->db_animals[i].life_time = kLifeTime;                // Продолжительность жизни
                 memory->db_animals[i].startvation_time = kStarvationTime;   // Продолжительность голодания
                 memory->map[x][y] = i;
                 index = i;
+                printf("%d: index-> %d\n", getpid(), index);
+                break;
             }
         }
     }
@@ -179,7 +188,7 @@ int main(int argc, char * argv[])
                 sprintf(childX, "%d", GetRandRangeInt(0, kMapSizeX));
                 sprintf(childY, "%d", GetRandRangeInt(0, kMapSizeY));
                 sprintf(childTypeAnimal, "%d", memory->db_animals[index].type);
-                char arg[]  = {childX, childY, childTypeAnimal};
+                char* arg[]  = {childX, childY, childTypeAnimal};
                 execv("animal", arg);
                 pthread_mutex_unlock(&memory->mutex);
             }
@@ -250,6 +259,7 @@ int main(int argc, char * argv[])
         }
         sleep(2);
     }
+
+    // printf("exit");
+    return 0;
 }
-
-

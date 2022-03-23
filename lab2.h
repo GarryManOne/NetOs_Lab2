@@ -57,7 +57,8 @@ typedef struct
 int GetRandRangeInt(int min, int max);
 
 // Вывод карты в консоль
-void PrintMap(void);
+void PrintMap(shr_mem* memory);
+
 // ************************************************************************
 
 #endif /* LAB2_H_INCLUDED */
